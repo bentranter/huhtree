@@ -2,7 +2,7 @@
 
 Combining [`cobra`](https://github.com/spf13/cobra) and [`huh`](https://github.com/charmbracelet/huh) for the ultimate CLI experience.
 
-## Demo
+## Thirty Second Demo
 
 [![asciicast](https://asciinema.org/a/631028.svg)](https://asciinema.org/a/631028)
 
