@@ -59,9 +59,11 @@ func inputCmd() *cobra.Command {
 		name string
 	}{}
 
+	options := []string{"Ben", "Bob", "Tato", "Example"}
+
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("What's your name?").Value(&flags.name),
+			huh.NewInput().Title("What's your name?").Value(&flags.name).Suggestions(options),
 		),
 	).WithTheme(huh.ThemeBase())
 
@@ -84,7 +86,6 @@ func inputCmd() *cobra.Command {
 			return run()
 		},
 		ValidArgsFunction: func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			options := []string{"Ben", "Bob", "Tato", "Example"}
 			suggestions := make([]string, 0, len(options))
 
 			if toComplete != "" {
