@@ -15,13 +15,15 @@ func rootCmd() *cobra.Command {
 		next string
 	}{}
 
+	// TODO You might be able to generate the form below at runtime by walking
+	// the immediate subcommands to find the command name and `short` value.
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
-				Title("Which command do you want to run?").
+				Title("Which subcommand do you want to run?").
 				Options(
-					huh.NewOption("Input example", "input"),
-					huh.NewOption("Confirm example", "confirm"),
+					huh.NewOption("confirm  -- Confirm something yes or no", "confirm"),
+					huh.NewOption("input    -- Input your name and write it to stdout", "input"),
 				).
 				Value(&flags.next),
 		),
@@ -48,7 +50,9 @@ func rootCmd() *cobra.Command {
 		Use:   "huhtree", // Must compile as 'huhtree' for autocompletion to work.
 		Short: "Trying out cobra and huh for the ultimate CLI experience",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			fmt.Println("TODO output default help")
+			// Is it better to also show the default help message here? The issue is
+			// that a regular printf writes to stdout and therefore persists beyond the
+			// invocation of the huh form.
 			return run(cmd)
 		},
 	}
