@@ -15,31 +15,46 @@ func rootCmd() *cobra.Command {
 		next string
 	}{}
 
-	// TODO You might be able to generate the form below at runtime by walking
-	// the immediate subcommands to find the command name and `short` value.
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Which subcommand do you want to run?").
-				Options(
-					huh.NewOption("confirm  -- Confirm something yes or no", "confirm"),
-					huh.NewOption("input    -- Input your name and write it to stdout", "input"),
-				).
-				Value(&flags.next),
-		),
-	).WithTheme(huh.ThemeBase())
+	form := func(cmd *cobra.Command) *huh.Form {
+		// Iterate over the cmd, getting each subcommand name and "short"
+		// description. By default, on the parent command, there is the built-in
+		// "help" and "completion" commands. The "help" command has no arguments,
+		// so it can run fine. The "completion" requires arguments and doesn't
+		// really make sense to include, so we filter it out.
+		opts := make([]huh.Option[string], 0)
+		for _, c := range cmd.Commands() {
+			if c.Name() != "completion" {
+				opts = append(opts, huh.NewOption[string](c.Name() + " -- " + c.Short, c.Name()))
+			}
+		}
+
+		return huh.NewForm(
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Title("Which subcommand do you want to run?").
+					Options(opts...).
+					Value(&flags.next),
+			),
+		).WithTheme(huh.ThemeBase())
+	}
 
 	run := func(cmd *cobra.Command) error {
-		if err := form.Run(); err != nil {
+		if err := form(cmd).Run(); err != nil {
 			return err
 		}
 
 		for _, c := range cmd.Commands() {
 			if name := c.Name(); name == flags.next {
-				if err := c.RunE(c, []string{}); err != nil {
-					return err
+				if c.Run != nil {
+					c.Run(c, []string{})
+					return nil
 				}
-				return nil
+				if c.RunE != nil {
+					if err := c.RunE(c, []string{}); err != nil {
+						return err
+					}
+					return nil
+				}
 			}
 		}
 
