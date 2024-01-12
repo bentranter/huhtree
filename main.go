@@ -15,12 +15,12 @@ type huhOpt struct {
 	short string
 }
 
-// genSubCmdOpts iterates over the given cobra cmd, getting each subcommand
+// getSubCmdName iterates over the given cobra cmd, getting each subcommand
 // name and "short" description. By default, on the parent command, there is
 // the built-in "help" and "completion" commands. The "help" command has no
 // arguments, so it can run fine. The "completion" requires arguments and
 // doesn't really make sense to include, so we filter it out.
-func genSubCmdOpts(cmd *cobra.Command, v *string) *huh.Form {
+func getSubCmdName(cmd *cobra.Command) (string, error) {
 	cmds := cmd.Commands()
 	maxlen := 0
 	huhOpts := make([]huhOpt, 0, len(cmds))
@@ -48,14 +48,16 @@ func genSubCmdOpts(cmd *cobra.Command, v *string) *huh.Form {
 			fmt.Sprintf(fmtstr, huhOpt.name, huhOpt.short), huhOpt.name))
 	}
 
-	return huh.NewForm(
+	var toRun string
+	err := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Select a command to run:").
 				Options(opts...).
-				Value(v),
+				Value(&toRun),
 		),
-	).WithTheme(huh.ThemeBase())
+	).WithTheme(huh.ThemeBase()).Run()
+	return toRun, err
 }
 
 func rootCmd() *cobra.Command {
@@ -64,7 +66,9 @@ func rootCmd() *cobra.Command {
 	}{}
 
 	run := func(cmd *cobra.Command) error {
-		if err := genSubCmdOpts(cmd, &flags.next).Run(); err != nil {
+		var err error
+		flags.next, err = getSubCmdName(cmd)
+		if err != nil {
 			return err
 		}
 
