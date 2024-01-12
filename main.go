@@ -10,36 +10,61 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type huhOpt struct {
+	name  string
+	short string
+}
+
+// genSubCmdOpts iterates over the given cobra cmd, getting each subcommand
+// name and "short" description. By default, on the parent command, there is
+// the built-in "help" and "completion" commands. The "help" command has no
+// arguments, so it can run fine. The "completion" requires arguments and
+// doesn't really make sense to include, so we filter it out.
+func genSubCmdOpts(cmd *cobra.Command, v *string) *huh.Form {
+	cmds := cmd.Commands()
+	maxlen := 0
+	huhOpts := make([]huhOpt, 0, len(cmds))
+
+	for _, c := range cmds {
+		name := c.Name()
+		if name == "completion" {
+			continue
+		}
+
+		if namelen := len(name); namelen > maxlen {
+			maxlen = namelen
+		}
+
+		huhOpts = append(huhOpts, huhOpt{
+			name:  name,
+			short: c.Short,
+		})
+	}
+
+	fmtstr := fmt.Sprintf("%%-%ds  -- %%s", maxlen)
+	opts := make([]huh.Option[string], 0)
+	for _, huhOpt := range huhOpts {
+		opts = append(opts, huh.NewOption[string](
+			fmt.Sprintf(fmtstr, huhOpt.name, huhOpt.short), huhOpt.name))
+	}
+
+	return huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Select a command to run:").
+				Options(opts...).
+				Value(v),
+		),
+	).WithTheme(huh.ThemeBase())
+}
+
 func rootCmd() *cobra.Command {
 	flags := &struct {
 		next string
 	}{}
 
-	form := func(cmd *cobra.Command) *huh.Form {
-		// Iterate over the cmd, getting each subcommand name and "short"
-		// description. By default, on the parent command, there is the built-in
-		// "help" and "completion" commands. The "help" command has no arguments,
-		// so it can run fine. The "completion" requires arguments and doesn't
-		// really make sense to include, so we filter it out.
-		opts := make([]huh.Option[string], 0)
-		for _, c := range cmd.Commands() {
-			if c.Name() != "completion" {
-				opts = append(opts, huh.NewOption[string](c.Name() + " -- " + c.Short, c.Name()))
-			}
-		}
-
-		return huh.NewForm(
-			huh.NewGroup(
-				huh.NewSelect[string]().
-					Title("Which subcommand do you want to run?").
-					Options(opts...).
-					Value(&flags.next),
-			),
-		).WithTheme(huh.ThemeBase())
-	}
-
 	run := func(cmd *cobra.Command) error {
-		if err := form(cmd).Run(); err != nil {
+		if err := genSubCmdOpts(cmd, &flags.next).Run(); err != nil {
 			return err
 		}
 
